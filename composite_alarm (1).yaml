@@ -1,0 +1,106 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation Stack for EC2 Auto Scaling Group with latest Amazon Linux 2 AMI
+
+Parameters:
+  LatestAmiId:
+    Description: The latest Amazon Linux 2 AMI
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+
+Resources:
+
+  MyEC2SecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: EC2 Security Group for the Auto Scaling Group instances
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+
+  LaunchConfiguration:
+    Type: 'AWS::AutoScaling::LaunchConfiguration'
+    Properties:
+      ImageId: !Ref LatestAmiId
+      InstanceType: t2.micro # Choose your desired instance type
+      SecurityGroups:
+        - Ref: MyEC2SecurityGroup
+
+  AutoScalingGroup:
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
+    Properties:
+      AvailabilityZones: 
+        Fn::GetAZs: ''  # All available AZs in the current region
+      LaunchConfigurationName: 
+        Ref: LaunchConfiguration
+      MinSize: '2'
+      MaxSize: '20'
+      DesiredCapacity: '2'
+      MetricsCollection:
+        - Granularity: 1Minute
+
+  ScaleUpPolicy:
+    Type: 'AWS::AutoScaling::ScalingPolicy'
+    Properties:
+      AutoScalingGroupName:
+        Ref: AutoScalingGroup
+      AdjustmentType: ChangeInCapacity
+      ScalingAdjustment: '1'
+      Cooldown: '300'
+
+  HighCpuAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmName: HighCPUUsage
+      AlarmDescription: Alarm when CPU exceeds 80 percent
+      Namespace: AWS/EC2
+      MetricName: CPUUtilization
+      Statistic: Average
+      Period: '300'
+      EvaluationPeriods: '1'
+      Threshold: '80'
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - Ref: ScaleUpPolicy
+
+  HighASGSizeAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmName: HighASGSize
+      AlarmDescription: Alarm when ASG size exceeds 10
+      Namespace: AWS/AutoScaling
+      MetricName: GroupTotalInstances
+      Statistic: Average
+      Period: '300'
+      EvaluationPeriods: '1'
+      Threshold: '10'
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value:
+            Ref: AutoScalingGroup
+
+  VeryHighCpuAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmName: VeryHighCPUUsage
+      AlarmDescription: Alarm when CPU exceeds 90 percent
+      Namespace: AWS/EC2
+      MetricName: CPUUtilization
+      Statistic: Average
+      Period: '300'
+      EvaluationPeriods: '1'
+      Threshold: '90'
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value:
+            Ref: AutoScalingGroup
+
+Outputs:
+  AutoScalingGroupName:
+    Description: The name of the Auto Scaling Group
+    Value: 
+      Ref: AutoScalingGroup
