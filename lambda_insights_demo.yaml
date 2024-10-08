@@ -1,0 +1,81 @@
+Resources:
+
+  HelloWorldFunction01Role:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Service: 'lambda.amazonaws.com'
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: 'lambda-execution-policy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action: 'logs:CreateLogGroup'
+                Resource: '*'
+              - Effect: 'Allow'
+                Action:
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: 'arn:aws:logs:*:*:*'
+
+  HelloWorldFunction01:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Handler: 'index.handler'
+      Role: !GetAtt HelloWorldFunction01Role.Arn
+      FunctionName: 'HelloWorldFunction01'
+      Code:
+        ZipFile: |
+          import json
+          def handler(event, context):
+              print("HelloWorld from function 01")
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps('Hello from Lambda!')
+              }
+      Runtime: 'python3.9'
+      Timeout: '15'
+
+  HelloWorldFunction02:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Handler: 'index.handler'
+      Role: !GetAtt HelloWorldFunction01Role.Arn
+      FunctionName: 'HelloWorldFunction02'
+      Code:
+        ZipFile: |
+          import json
+          def handler(event, context):
+              print("HelloWorld from function 02")
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps('Hello from Lambda!')
+              }
+      Runtime: 'python3.9'
+      Timeout: '15'
+
+  HelloWorldFunction03:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Handler: 'index.handler'
+      Role: !GetAtt HelloWorldFunction01Role.Arn
+      FunctionName: 'HelloWorldFunction03'
+      Code:
+        ZipFile: |
+          import json
+          import time
+          def handler(event, context):
+              time.sleep(5)
+              print("HelloWorld from function 03")
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps('Hello from Lambda!')
+              }
+      Runtime: 'python3.9'
+      Timeout: '15'
