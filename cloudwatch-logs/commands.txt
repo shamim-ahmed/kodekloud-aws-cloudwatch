@@ -1,0 +1,1 @@
+aws logs put-log-events --log-group-name http-404-log-group --log-stream-name phoenix --log-events file://events_all.json
